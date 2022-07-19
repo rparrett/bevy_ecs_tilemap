@@ -5,11 +5,10 @@ use crate::{
     ChunkPos, IsoType, LayerSettings, LocalTilePos, MapTileError, TilePos, TilemapMeshType,
 };
 use bevy::{
-    core::Time,
     math::{Vec2, Vec4},
     prelude::*,
-    render::camera::Camera2d,
-    tasks::AsyncComputeTaskPool,
+    render::camera::Camera,
+    time::Time,
 };
 use std::sync::Mutex;
 
@@ -187,7 +186,6 @@ impl Chunk {
 }
 
 pub(crate) fn update_chunk_mesh(
-    task_pool: Res<AsyncComputeTaskPool>,
     meshes: ResMut<Assets<Mesh>>,
     tile_query: Query<(&TilePos, &Tile, Option<&GPUAnimated>)>,
     mut changed_chunks: Query<
@@ -197,7 +195,7 @@ pub(crate) fn update_chunk_mesh(
 ) {
     let threaded_meshes = Mutex::new(meshes);
 
-    changed_chunks.par_for_each_mut(&task_pool, 5, |(mut chunk, visibility)| {
+    changed_chunks.par_for_each_mut(5, |(mut chunk, visibility)| {
         if chunk.needs_remesh && visibility.is_visible {
             log::trace!(
                 "Re-meshing chunk at: {:?} layer id of: {}",
@@ -217,7 +215,7 @@ pub(crate) fn update_chunk_mesh(
 }
 
 pub(crate) fn update_chunk_visibility(
-    camera: Query<(&OrthographicProjection, &Transform), With<Camera2d>>,
+    camera: Query<(&OrthographicProjection, &Transform), With<Camera>>,
     mut chunks: Query<(&GlobalTransform, &Chunk, &mut Visibility)>,
 ) {
     for (ortho, camera_transform) in camera.iter() {
@@ -238,20 +236,19 @@ pub(crate) fn update_chunk_visibility(
                 continue;
             }
 
+            let (global_scale, _, global_translation) =
+                global_transform.to_scale_rotation_translation();
+
             let bounds_size = Vec2::new(
-                chunk.settings.chunk_size.0 as f32
-                    * chunk.settings.tile_size.0
-                    * global_transform.scale.x,
-                chunk.settings.chunk_size.1 as f32
-                    * chunk.settings.tile_size.1
-                    * global_transform.scale.y,
+                chunk.settings.chunk_size.0 as f32 * chunk.settings.tile_size.0 * global_scale.x,
+                chunk.settings.chunk_size.1 as f32 * chunk.settings.tile_size.1 * global_scale.y,
             );
 
             let bounds = Vec4::new(
-                global_transform.translation.x,
-                global_transform.translation.x + bounds_size.x,
-                global_transform.translation.y,
-                global_transform.translation.y + bounds_size.y,
+                global_translation.x,
+                global_translation.x + bounds_size.x,
+                global_translation.y,
+                global_translation.y + bounds_size.y,
             );
 
             let padded_camera_bounds = Vec4::new(

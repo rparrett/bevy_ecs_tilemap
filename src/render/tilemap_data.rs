@@ -13,6 +13,7 @@ pub struct TilemapUniformData {
     pub chunk_pos: Vec2,
     pub map_size: Vec2,
     pub time: f32,
+    pub _padding: Vec2, // hack for webgl2 16 byte alignment
 }
 
 impl From<&Chunk> for TilemapUniformData {
@@ -28,6 +29,7 @@ impl From<&Chunk> for TilemapUniformData {
             chunk_pos: chunk_pos * chunk_size,
             map_size: map_size * chunk_size * chunk.settings.grid_size,
             time: 0.0,
+            _padding: Vec2::ZERO,
         }
     }
 }

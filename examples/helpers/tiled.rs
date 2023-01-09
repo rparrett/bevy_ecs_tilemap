@@ -78,7 +78,11 @@ impl AssetLoader for TiledLoader {
 
             let mut dependencies = Vec::new();
             let mut tilemap_textures = HashMap::default();
+
+            #[cfg(not(feature = "atlas"))]
             let mut tile_image_offsets = HashMap::default();
+            #[cfg(feature = "atlas")]
+            let tile_image_offsets = HashMap::default();
 
             for (tileset_index, tileset) in map.tilesets().iter().enumerate() {
                 let tilemap_texture = match &tileset.image {
@@ -296,6 +300,7 @@ pub fn process_loaded_maps(
                                     TilemapTexture::Vector(_) =>
                                         *tiled_map.tile_image_offsets.get(&(tileset_index, layer_tile.id()))
                                         .expect("The offset into to image vector should have been saved during the initial load."),
+                                    #[cfg(not(feature = "atlas"))]
                                     _ => unreachable!()
                                 };
 

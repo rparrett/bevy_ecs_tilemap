@@ -1,4 +1,5 @@
 use bevy::math::Vec4Swizzles;
+use bevy::window::PrimaryWindow;
 use bevy::{ecs::system::Resource, prelude::*};
 use bevy_ecs_tilemap::prelude::*;
 mod helpers;
@@ -122,7 +123,7 @@ fn spawn_tile_labels(
         font_size: 20.0,
         color: Color::BLACK,
     };
-    let text_alignment = TextAlignment::CENTER;
+    let text_alignment = TextAlignment::Center;
     for (map_transform, map_type, grid_size, tilemap_storage) in tilemap_q.iter() {
         for tile_entity in tilemap_storage.iter().flatten() {
             let tile_pos = tile_q.get(*tile_entity).unwrap();
@@ -154,7 +155,7 @@ pub struct MapTypeLabel;
 fn spawn_map_type_label(
     mut commands: Commands,
     font_handle: Res<FontHandle>,
-    windows: Res<Windows>,
+    windows: Query<&Window, With<PrimaryWindow>>,
     map_type_q: Query<&TilemapType>,
 ) {
     let text_style = TextStyle {
@@ -162,26 +163,26 @@ fn spawn_map_type_label(
         font_size: 20.0,
         color: Color::BLACK,
     };
-    let text_alignment = TextAlignment::CENTER;
+    let text_alignment = TextAlignment::Center;
 
-    for window in windows.iter() {
-        for map_type in map_type_q.iter() {
-            // Place the map type label somewhere in the top left side of the screen
-            let transform = Transform {
-                translation: Vec2::new(-0.5 * window.width() / 2.0, 0.8 * window.height() / 2.0)
-                    .extend(1.0),
-                ..Default::default()
-            };
-            commands.spawn((
-                Text2dBundle {
-                    text: Text::from_section(format!("{map_type:?}"), text_style.clone())
-                        .with_alignment(text_alignment),
-                    transform,
-                    ..default()
-                },
-                MapTypeLabel,
-            ));
-        }
+    let window = windows.single();
+
+    for map_type in map_type_q.iter() {
+        // Place the map type label somewhere in the top left side of the screen
+        let transform = Transform {
+            translation: Vec2::new(-0.5 * window.width() / 2.0, 0.8 * window.height() / 2.0)
+                .extend(1.0),
+            ..Default::default()
+        };
+        commands.spawn((
+            Text2dBundle {
+                text: Text::from_section(format!("{map_type:?}"), text_style.clone())
+                    .with_alignment(text_alignment),
+                transform,
+                ..default()
+            },
+            MapTypeLabel,
+        ));
     }
 }
 
@@ -283,25 +284,6 @@ fn swap_map_type(
 #[derive(Component)]
 struct HighlightedLabel;
 
-// Converts the cursor position into a world position, taking into account any transforms applied
-// the camera.
-pub fn cursor_pos_in_world(
-    windows: &Windows,
-    cursor_pos: Vec2,
-    cam_t: &Transform,
-    cam: &Camera,
-) -> Vec3 {
-    let window = windows.primary();
-
-    let window_size = Vec2::new(window.width(), window.height());
-
-    // Convert screen position [0..resolution] to ndc [-1..1]
-    // (ndc = normalized device coordinates)
-    let ndc_to_world = cam_t.compute_matrix() * cam.projection_matrix().inverse();
-    let ndc = (cursor_pos / window_size) * 2.0 - Vec2::ONE;
-    ndc_to_world.project_point3(ndc.extend(0.0))
-}
-
 #[derive(Resource)]
 pub struct CursorPos(Vec3);
 impl Default for CursorPos {
@@ -314,22 +296,15 @@ impl Default for CursorPos {
 
 // We need to keep the cursor position updated based on any `CursorMoved` events.
 pub fn update_cursor_pos(
-    windows: Res<Windows>,
-    camera_q: Query<(&Transform, &Camera)>,
+    cameras: Query<(&GlobalTransform, &Camera)>,
     mut cursor_moved_events: EventReader<CursorMoved>,
     mut cursor_pos: ResMut<CursorPos>,
 ) {
+    let (transform, camera) = cameras.single();
+
     for cursor_moved in cursor_moved_events.iter() {
-        // To get the mouse's world position, we have to transform its window position by
-        // any transforms on the camera. This is done by projecting the cursor position into
-        // camera space (world space).
-        for (cam_t, cam) in camera_q.iter() {
-            *cursor_pos = CursorPos(cursor_pos_in_world(
-                &windows,
-                cursor_moved.position,
-                cam_t,
-                cam,
-            ));
+        if let Some(pos) = camera.viewport_to_world_2d(transform, cursor_moved.position) {
+            *cursor_pos = CursorPos(pos.extend(0.));
         }
     }
 }
@@ -398,10 +373,10 @@ fn main() {
         .add_plugins(
             DefaultPlugins
                 .set(WindowPlugin {
-                    window: WindowDescriptor {
+                    primary_window: Some(Window {
                         title: String::from("Mouse Position to Tile Position"),
                         ..Default::default()
-                    },
+                    }),
                     ..default()
                 })
                 .set(ImagePlugin::default_nearest()),
@@ -413,11 +388,17 @@ fn main() {
         .init_resource::<TileHandleSquare>()
         .init_resource::<FontHandle>()
         .add_plugin(TilemapPlugin)
-        .add_startup_system(spawn_tilemap)
-        .add_startup_system_to_stage(StartupStage::PostStartup, spawn_tile_labels)
-        .add_startup_system_to_stage(StartupStage::PostStartup, spawn_map_type_label)
-        .add_system_to_stage(CoreStage::First, camera_movement)
-        .add_system_to_stage(CoreStage::First, update_cursor_pos.after(camera_movement))
+        .add_startup_systems(
+            (
+                spawn_tilemap,
+                apply_system_buffers,
+                spawn_tile_labels,
+                spawn_map_type_label,
+            )
+                .chain(),
+        )
+        .add_system(camera_movement)
+        .add_system(update_cursor_pos.after(camera_movement))
         .add_system(swap_map_type)
         .add_system(highlight_tile_labels.after(swap_map_type))
         .run();

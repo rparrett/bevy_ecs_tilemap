@@ -11,7 +11,7 @@ use bevy::{
         render_resource::{
             FilterMode, SamplerDescriptor, SpecializedRenderPipelines, VertexFormat,
         },
-        RenderApp, RenderStage,
+        RenderApp, RenderSet,
     },
 };
 
@@ -118,9 +118,9 @@ impl Plugin for TilemapRenderingPlugin {
         #[cfg(not(feature = "atlas"))]
         app.add_system(set_texture_to_copy_src);
 
-        app.add_system_to_stage(CoreStage::First, clear_removed);
-        app.add_system_to_stage(CoreStage::PostUpdate, removal_helper_tilemap);
-        app.add_system_to_stage(CoreStage::PostUpdate, removal_helper);
+        app.add_system(clear_removed.in_base_set(CoreSet::First));
+        app.add_system(removal_helper_tilemap.in_base_set(CoreSet::PostUpdate));
+        app.add_system(removal_helper.in_base_set(CoreSet::PostUpdate));
 
         // Extract the chunk size from the TilemapRenderSettings used to initialize the
         // ChunkCoordinate resource to insert into the render pipeline
@@ -229,17 +229,14 @@ impl Plugin for TilemapRenderingPlugin {
             .insert_resource(RenderChunk2dStorage::default())
             .insert_resource(SecondsSinceStartup(0.0));
         render_app
-            .add_system_to_stage(RenderStage::Extract, extract::extract)
-            .add_system_to_stage(RenderStage::Extract, extract::extract_removal);
+            .add_system_to_schedule(ExtractSchedule, extract::extract)
+            .add_system_to_schedule(ExtractSchedule, extract::extract_removal);
         render_app
-            .add_system_to_stage(RenderStage::Prepare, prepare::prepare)
-            .add_system_to_stage(
-                RenderStage::Prepare,
-                prepare::prepare_removal.before(prepare::prepare),
-            )
-            .add_system_to_stage(RenderStage::Queue, queue::queue_meshes)
-            .add_system_to_stage(RenderStage::Queue, queue::queue_transform_bind_group)
-            .add_system_to_stage(RenderStage::Queue, queue::queue_tilemap_bind_group)
+            .add_system(prepare::prepare.in_set(RenderSet::Prepare))
+            .add_system(prepare::prepare_removal.in_set(RenderSet::Prepare))
+            .add_system(queue::queue_meshes.in_set(RenderSet::Queue))
+            .add_system(queue::queue_transform_bind_group.in_set(RenderSet::Queue))
+            .add_system(queue::queue_tilemap_bind_group.in_set(RenderSet::Queue))
             .init_resource::<TilemapPipeline>()
             .init_resource::<ImageBindGroups>()
             .init_resource::<SpecializedRenderPipelines<TilemapPipeline>>()
@@ -251,7 +248,7 @@ impl Plugin for TilemapRenderingPlugin {
         #[cfg(not(feature = "atlas"))]
         render_app
             .init_resource::<TextureArrayCache>()
-            .add_system_to_stage(RenderStage::Prepare, prepare_textures);
+            .add_system(prepare_textures.in_set(RenderSet::Prepare));
     }
 }
 
@@ -292,13 +289,16 @@ pub struct RemovedTileEntity(pub Entity);
 #[derive(Component)]
 pub struct RemovedMapEntity(pub Entity);
 
-fn removal_helper(mut commands: Commands, removed_query: RemovedComponents<TilePos>) {
+fn removal_helper(mut commands: Commands, mut removed_query: RemovedComponents<TilePos>) {
     for entity in removed_query.iter() {
         commands.spawn(RemovedTileEntity(entity));
     }
 }
 
-fn removal_helper_tilemap(mut commands: Commands, removed_query: RemovedComponents<TileStorage>) {
+fn removal_helper_tilemap(
+    mut commands: Commands,
+    mut removed_query: RemovedComponents<TileStorage>,
+) {
     for entity in removed_query.iter() {
         commands.spawn(RemovedMapEntity(entity));
     }

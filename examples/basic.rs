@@ -90,10 +90,10 @@ fn swap_texture_or_hide(
     }
     if keyboard_input.just_pressed(KeyCode::H) {
         for (_, mut visibility) in &mut query {
-            if visibility.is_visible {
-                visibility.is_visible = false;
+            *visibility = if matches!(*visibility, Visibility::Hidden) {
+                Visibility::Visible
             } else {
-                visibility.is_visible = true;
+                Visibility::Hidden
             }
         }
     }
@@ -102,12 +102,12 @@ fn swap_texture_or_hide(
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin{
-            window: WindowDescriptor {
+            primary_window: Some(Window {
                 title: String::from(
                     "Basic Example - Press Space to change Texture and H to show/hide tilemap.",
                 ),
                 ..Default::default()
-            },
+            }),
             ..default()
         }).set(ImagePlugin::default_nearest()))
         .add_plugin(TilemapPlugin)

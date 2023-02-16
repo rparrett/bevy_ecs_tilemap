@@ -35,7 +35,7 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetMeshViewBindGroup<I> {
     fn render<'w>(
         _item: &Transparent2d,
         (view_uniform, pbr_view_bind_group): (&'w ViewUniformOffset, &'w TilemapViewBindGroup),
-        _item_query: (),
+        _entity: (),
         _param: Self::Param,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
@@ -124,7 +124,7 @@ impl RenderCommand<Transparent2d> for SetItemPipeline {
     fn render<'w>(
         item: &Transparent2d,
         _view: (),
-        _item_query: (),
+        _entity: (),
         pipeline_cache: SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {

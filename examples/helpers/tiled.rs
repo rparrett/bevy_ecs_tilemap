@@ -285,7 +285,7 @@ pub fn process_loaded_maps(
                                 let mapped_y = mapped_y as i32;
 
                                 let layer_tile =
-                                    match layer_data.get_tile(mapped_x as i32, mapped_y as i32) {
+                                    match layer_data.get_tile(mapped_x, mapped_y) {
                                         Some(t) => t,
                                         None => {
                                             continue;

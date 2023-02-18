@@ -221,7 +221,7 @@ fn swap_map_type(
                 _ => unreachable!(),
             }
 
-            *map_transform = get_tilemap_center_transform(&map_size, &grid_size, &map_type, 0.0);
+            *map_transform = get_tilemap_center_transform(map_size, &grid_size, &map_type, 0.0);
 
             for (label, tile_pos) in tile_label_q.iter() {
                 if let Ok(mut tile_label_transform) = transform_q.get_mut(label.0) {
@@ -260,7 +260,7 @@ pub fn update_cursor_pos(
     let (transform, camera) = cameras.single();
 
     for cursor_moved in cursor_moved_events.iter() {
-        if let Some(pos) = camera.viewport_to_world_2d(&transform, cursor_moved.position) {
+        if let Some(pos) = camera.viewport_to_world_2d(transform, cursor_moved.position) {
             *cursor_pos = CursorPos(pos.extend(0.));
         }
     }

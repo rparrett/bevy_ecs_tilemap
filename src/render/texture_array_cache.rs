@@ -197,6 +197,7 @@ impl TextureArrayCache {
                         sampler,
                         texture_view,
                         size: tile_size.into(),
+                        mip_level_count: 1,
                     };
 
                     self.textures.insert(texture.clone_weak(), gpu_image);

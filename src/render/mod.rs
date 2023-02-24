@@ -229,8 +229,8 @@ impl Plugin for TilemapRenderingPlugin {
             .insert_resource(RenderChunk2dStorage::default())
             .insert_resource(SecondsSinceStartup(0.0));
         render_app
-            .add_system_to_schedule(ExtractSchedule, extract::extract)
-            .add_system_to_schedule(ExtractSchedule, extract::extract_removal);
+            .add_system(extract::extract.in_schedule(ExtractSchedule))
+            .add_system(extract::extract_removal.in_schedule(ExtractSchedule));
         render_app
             .add_system(prepare::prepare.in_set(RenderSet::Prepare))
             .add_system(prepare::prepare_removal.in_set(RenderSet::Prepare))

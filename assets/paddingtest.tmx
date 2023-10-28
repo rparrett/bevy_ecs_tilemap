@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.0" orientation="orthogonal" renderorder="right-down" width="16" height="16" tilewidth="16" tileheight="16" infinite="0" nextlayerid="2" nextobjectid="1">
+ <tileset firstgid="1" name="with_offset" tilewidth="16" tileheight="16" spacing="1" margin="1" tilecount="30" columns="15">
+  <image source="with_offset.png" width="256" height="35"/>
+ </tileset>
+ <tileset firstgid="31" name="no_offset" tilewidth="16" tileheight="16" spacing="1" tilecount="30" columns="15">
+  <image source="no_offset.png" width="254" height="33"/>
+ </tileset>
+ <layer id="1" name="Tile Layer 1" width="16" height="16">
+  <data encoding="csv">
+1,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+16,30,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+31,45,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+46,60,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+</map>

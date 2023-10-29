@@ -5,13 +5,12 @@ use bevy::{
     render::{
         extract_component::ExtractComponentPlugin,
         globals::GlobalsBuffer,
-        render_asset::{PrepareAssetSet, RenderAssets},
+        render_asset::{prepare_assets, RenderAssets},
         render_phase::{AddRenderCommand, DrawFunctions, RenderPhase},
         render_resource::{
-            AsBindGroup, AsBindGroupError, BindGroup, BindGroupDescriptor, BindGroupEntry,
-            BindGroupLayout, BindingResource, OwnedBindingResource, PipelineCache,
-            RenderPipelineDescriptor, ShaderRef, SpecializedRenderPipeline,
-            SpecializedRenderPipelines,
+            AsBindGroup, AsBindGroupError, BindGroup, BindGroupEntry, BindGroupLayout,
+            BindingResource, OwnedBindingResource, PipelineCache, RenderPipelineDescriptor,
+            ShaderRef, SpecializedRenderPipeline, SpecializedRenderPipelines,
         },
         renderer::RenderDevice,
         texture::FallbackImage,
@@ -38,9 +37,7 @@ use super::{
 #[cfg(not(feature = "atlas"))]
 pub(crate) use super::TextureArrayCache;
 
-pub trait MaterialTilemap:
-    AsBindGroup + Send + Sync + Clone + TypeUuid + TypePath + Sized + 'static
-{
+pub trait MaterialTilemap: AsBindGroup + Asset + Clone + Sized {
     /// Returns this material's vertex shader. If [`ShaderRef::Default`] is returned, the default mesh vertex shader
     /// will be used.
     fn vertex_shader() -> ShaderRef {
@@ -111,7 +108,7 @@ where
     M::Data: PartialEq + Eq + Hash + Clone,
 {
     fn build(&self, app: &mut App) {
-        app.add_asset::<M>()
+        app.init_asset::<M>()
             .add_plugins(ExtractComponentPlugin::<Handle<M>>::extract_visible());
     }
 
@@ -127,27 +124,29 @@ where
                 .add_systems(
                     Render,
                     prepare_materials_tilemap::<M>
-                        .in_set(RenderSet::Prepare)
-                        .after(PrepareAssetSet::PreAssetPrepare),
+                        .in_set(RenderSet::PrepareAssets)
+                        .after(prepare_assets::<Image>), // TODO ???
                 )
                 .add_systems(
                     Render,
-                    queue_material_tilemap_meshes::<M>.in_set(RenderSet::Queue),
+                    queue_material_tilemap_meshes::<M>
+                        .in_set(RenderSet::QueueMeshes)
+                        .after(prepare_materials_tilemap::<M>),
                 );
         }
     }
 }
 
 pub struct PreparedMaterialTilemap<T: MaterialTilemap> {
-    pub bindings: Vec<OwnedBindingResource>,
+    pub bindings: Vec<(u32, OwnedBindingResource)>,
     pub bind_group: BindGroup,
     pub key: T::Data,
 }
 
 #[derive(Resource)]
 struct ExtractedMaterialsTilemap<M: MaterialTilemap> {
-    extracted: Vec<(Handle<M>, M)>,
-    removed: Vec<Handle<M>>,
+    extracted: Vec<(AssetId<M>, M)>,
+    removed: Vec<AssetId<M>>,
 }
 
 impl<M: MaterialTilemap> Default for ExtractedMaterialsTilemap<M> {
@@ -234,7 +233,7 @@ impl<M: MaterialTilemap> FromWorld for MaterialTilemapPipeline<M> {
 /// Stores all prepared representations of [`Material2d`] assets for as long as they exist.
 #[derive(Resource, Deref, DerefMut)]
 pub struct RenderMaterialsTilemap<T: MaterialTilemap>(
-    HashMap<Handle<T>, PreparedMaterialTilemap<T>>,
+    HashMap<AssetId<T>, PreparedMaterialTilemap<T>>,
 );
 
 impl<T: MaterialTilemap> Default for RenderMaterialsTilemap<T> {
@@ -252,22 +251,23 @@ fn extract_materials_tilemap<M: MaterialTilemap>(
 ) {
     let mut changed_assets = HashSet::default();
     let mut removed = Vec::new();
-    for event in events.iter() {
+    for event in events.read() {
         match event {
-            AssetEvent::Created { handle } | AssetEvent::Modified { handle } => {
-                changed_assets.insert(handle.clone_weak());
+            AssetEvent::Added { id } | AssetEvent::Modified { id } => {
+                changed_assets.insert(id);
             }
-            AssetEvent::Removed { handle } => {
-                changed_assets.remove(handle);
-                removed.push(handle.clone_weak());
+            AssetEvent::Removed { id } => {
+                changed_assets.remove(id);
+                removed.push(*id);
             }
+            _ => {}
         }
     }
 
     let mut extracted_assets = Vec::new();
-    for handle in changed_assets.drain() {
-        if let Some(asset) = assets.get(&handle) {
-            extracted_assets.push((handle, asset.clone()));
+    for id in changed_assets.drain() {
+        if let Some(asset) = assets.get(*id) {
+            extracted_assets.push((*id, asset.clone()));
         }
     }
 
@@ -279,7 +279,7 @@ fn extract_materials_tilemap<M: MaterialTilemap>(
 
 /// All [`Material2d`] values of a given type that should be prepared next frame.
 pub struct PrepareNextFrameMaterials<M: MaterialTilemap> {
-    assets: Vec<(Handle<M>, M)>,
+    assets: Vec<(AssetId<M>, M)>,
 }
 
 impl<M: MaterialTilemap> Default for PrepareNextFrameMaterials<M> {
@@ -409,8 +409,10 @@ pub fn queue_material_tilemap_meshes<M: MaterialTilemap>(
         globals_buffer.buffer.binding(),
     ) {
         for (entity, view, visible_entities, mut transparent_phase) in views.iter_mut() {
-            let view_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
-                entries: &[
+            let view_bind_group = render_device.create_bind_group(
+                Some("tilemap_view_bind_group"),
+                &tilemap_pipeline.view_layout,
+                &[
                     BindGroupEntry {
                         binding: 0,
                         resource: view_binding.clone(),
@@ -420,9 +422,7 @@ pub fn queue_material_tilemap_meshes<M: MaterialTilemap>(
                         resource: globals.clone(),
                     },
                 ],
-                label: Some("tilemap_view_bind_group"),
-                layout: &tilemap_pipeline.view_layout,
-            });
+            );
 
             commands.entity(entity).insert(TilemapViewBindGroup {
                 value: view_bind_group,
@@ -445,7 +445,7 @@ pub fn queue_material_tilemap_meshes<M: MaterialTilemap>(
                 let Ok(material_handle) = materials.get(tilemap_id.0) else {
                     continue;
                 };
-                let Some(material) = render_materials.get(material_handle) else {
+                let Some(material) = render_materials.get(&material_handle.id()) else {
                     continue;
                 };
 
@@ -473,8 +473,10 @@ pub fn queue_material_tilemap_meshes<M: MaterialTilemap>(
                             let gpu_image = texture_array_cache.get(&chunk.texture);
                             #[cfg(feature = "atlas")]
                             let gpu_image = gpu_images.get(chunk.texture.image_handle()).unwrap();
-                            render_device.create_bind_group(&BindGroupDescriptor {
-                                entries: &[
+                            render_device.create_bind_group(
+                                Some("sprite_material_bind_group"),
+                                &tilemap_pipeline.material_layout,
+                                &[
                                     BindGroupEntry {
                                         binding: 0,
                                         resource: BindingResource::TextureView(
@@ -486,9 +488,7 @@ pub fn queue_material_tilemap_meshes<M: MaterialTilemap>(
                                         resource: BindingResource::Sampler(&gpu_image.sampler),
                                     },
                                 ],
-                                label: Some("sprite_material_bind_group"),
-                                layout: &tilemap_pipeline.material_layout,
-                            })
+                            )
                         });
 
                     let key = TilemapPipelineKey {
@@ -518,7 +518,8 @@ pub fn queue_material_tilemap_meshes<M: MaterialTilemap>(
                         draw_function: draw_tilemap,
                         pipeline: pipeline_id,
                         sort_key: FloatOrd(z),
-                        batch_range: None,
+                        batch_range: 0..0,
+                        dynamic_offset: None,
                     });
                 }
             }
@@ -526,8 +527,7 @@ pub fn queue_material_tilemap_meshes<M: MaterialTilemap>(
     }
 }
 
-#[derive(AsBindGroup, TypeUuid, Debug, Clone, Default, TypePath)]
-#[uuid = "d6f8aeb8-510c-499a-9c0b-38551ae0b72a"]
+#[derive(Asset, AsBindGroup, Reflect, Debug, Default, Clone)]
 pub struct StandardTilemapMaterial {}
 
 impl MaterialTilemap for StandardTilemapMaterial {}

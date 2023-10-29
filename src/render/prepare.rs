@@ -13,7 +13,7 @@ use bevy::prelude::Resource;
 use bevy::{
     math::{Mat4, UVec4},
     prelude::{
-        Commands, Component, ComputedVisibility, Entity, GlobalTransform, Query, Res, ResMut, Vec2,
+        Commands, Component, Entity, GlobalTransform, InheritedVisibility, Query, Res, ResMut, Vec2,
     },
     render::{
         render_resource::{DynamicUniformBuffer, ShaderType},
@@ -56,7 +56,7 @@ pub(crate) fn prepare(
         &TilemapType,
         &TilemapTexture,
         &TilemapSize,
-        &ComputedVisibility,
+        &InheritedVisibility,
         &FrustumCulling,
     )>,
     extracted_tilemap_textures: Query<&ExtractedTilemapTexture>,
@@ -145,7 +145,7 @@ pub(crate) fn prepare(
             chunk.map_size = *map_size;
             chunk.texture_size = (*texture_size).into();
             chunk.spacing = (*spacing).into();
-            chunk.visible = visibility.is_visible();
+            chunk.visible = visibility.get();
             chunk.frustum_culling = **frustum_culling;
             chunk.update_geometry(
                 (*global_transform).into(),
@@ -197,7 +197,7 @@ pub(crate) fn prepare(
             TilemapId(Entity::from_bits(chunk.tilemap_id)),
             DynamicUniformIndex::<MeshUniform> {
                 index: mesh_uniforms.0.push(MeshUniform {
-                    transform: chunk.get_transform_matrix(),
+                    transform: chunk.get_affine().into(),
                 }),
                 marker: PhantomData,
             },

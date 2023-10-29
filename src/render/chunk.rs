@@ -1,11 +1,11 @@
 use std::hash::{Hash, Hasher};
 
-use bevy::math::Mat4;
-use bevy::prelude::{Resource, Transform};
+use bevy::math::Affine3A;
+use bevy::prelude::{InheritedVisibility, Resource, Transform};
 use bevy::render::primitives::Aabb;
 use bevy::{
     math::{UVec2, UVec3, UVec4, Vec2, Vec3Swizzles, Vec4, Vec4Swizzles},
-    prelude::{Component, ComputedVisibility, Entity, GlobalTransform, Mesh, Vec3},
+    prelude::{Component, Entity, GlobalTransform, Mesh, Vec3},
     render::{
         mesh::{GpuBufferInfo, GpuMesh, Indices, VertexAttributeValues},
         render_resource::{BufferInitDescriptor, BufferUsages, ShaderType},
@@ -49,7 +49,7 @@ impl RenderChunk2dStorage {
         texture: TilemapTexture,
         map_size: TilemapSize,
         transform: GlobalTransform,
-        visibility: &ComputedVisibility,
+        visibility: &InheritedVisibility,
         frustum_culling: &FrustumCulling,
     ) -> &mut RenderChunk2d {
         let pos = position.xyz();
@@ -84,7 +84,7 @@ impl RenderChunk2dStorage {
                 texture_size,
                 map_size,
                 transform,
-                visibility.is_visible(),
+                visibility.get(),
                 **frustum_culling,
             );
             self.entity_to_chunk.insert(chunk_entity, pos);
@@ -198,7 +198,7 @@ pub struct RenderChunk2d {
     /// The product of the local and global transforms.
     transform: Transform,
     /// The matrix computed from this chunk's `transform`.
-    transform_matrix: Mat4,
+    affine: Affine3A,
     pub spacing: Vec2,
     pub tiles: Vec<Option<PackedTileData>>,
     pub texture: TilemapTexture,
@@ -230,9 +230,9 @@ impl RenderChunk2d {
     ) -> Self {
         let position = chunk_index_to_world_space(index.xy(), size_in_tiles, &grid_size, &map_type);
         let local_transform = Transform::from_translation(position.extend(0.0));
+        let affine = global_transform.affine();
         let global_transform: Transform = global_transform.into();
         let transform = local_transform * global_transform;
-        let transform_matrix = transform.compute_matrix();
         let aabb = chunk_aabb(size_in_tiles, &grid_size, &tile_size, &map_type);
         Self {
             dirty_mesh: true,
@@ -249,7 +249,7 @@ impl RenderChunk2d {
             local_transform,
             global_transform,
             transform,
-            transform_matrix,
+            affine,
             mesh: Mesh::new(bevy::render::render_resource::PrimitiveTopology::TriangleList),
             spacing,
             texture_size,
@@ -287,12 +287,12 @@ impl RenderChunk2d {
         self.transform
     }
 
-    pub fn get_transform_matrix(&self) -> Mat4 {
-        self.transform_matrix
+    pub fn get_affine(&self) -> Affine3A {
+        self.affine
     }
 
     pub fn intersects_frustum(&self, frustum: &ExtractedFrustum) -> bool {
-        frustum.intersects_obb(&self.aabb, &self.transform_matrix)
+        frustum.intersects_obb(&self.aabb, &self.affine)
     }
 
     pub fn update_geometry(
@@ -335,7 +335,7 @@ impl RenderChunk2d {
 
         if dirty_local_transform || dirty_global_transform {
             self.transform = global_transform * self.local_transform;
-            self.transform_matrix = self.transform.compute_matrix();
+            self.affine = self.transform.compute_affine();
         }
     }
 

@@ -1,8 +1,9 @@
+use bevy::math::Affine3A;
 use bevy::prelude::Res;
 use bevy::prelude::Time;
 use bevy::render::primitives::{Aabb, Frustum};
-use bevy::render::render_resource::FilterMode;
 use bevy::render::render_resource::TextureFormat;
+use bevy::render::texture::ImageFilterMode;
 use bevy::{math::Vec4, prelude::*, render::Extract, utils::HashMap};
 
 use crate::prelude::TilemapGridSize;
@@ -65,7 +66,7 @@ pub struct ExtractedTilemapBundle {
     map_type: TilemapType,
     texture: TilemapTexture,
     map_size: TilemapSize,
-    visibility: ComputedVisibility,
+    visibility: InheritedVisibility,
     frustum_culling: FrustumCulling,
 }
 
@@ -77,7 +78,7 @@ pub(crate) struct ExtractedTilemapTexture {
     pub tile_spacing: TilemapSpacing,
     pub tile_count: u32,
     pub texture: TilemapTexture,
-    pub filtering: FilterMode,
+    pub filtering: ImageFilterMode,
     pub format: TextureFormat,
 }
 
@@ -87,7 +88,7 @@ impl ExtractedTilemapTexture {
         texture: TilemapTexture,
         tile_size: TilemapTileSize,
         tile_spacing: TilemapSpacing,
-        filtering: FilterMode,
+        filtering: ImageFilterMode,
         image_assets: &Res<Assets<Image>>,
     ) -> ExtractedTilemapTexture {
         let (tile_count, texture_size, format) = match &texture {
@@ -174,7 +175,7 @@ pub struct ExtractedFrustum {
 }
 
 impl ExtractedFrustum {
-    pub fn intersects_obb(&self, aabb: &Aabb, transform_matrix: &Mat4) -> bool {
+    pub fn intersects_obb(&self, aabb: &Aabb, transform_matrix: &Affine3A) -> bool {
         self.frustum
             .intersects_obb(aabb, transform_matrix, true, false)
     }
@@ -216,7 +217,7 @@ pub fn extract(
             &TilemapType,
             &TilemapTexture,
             &TilemapSize,
-            &ComputedVisibility,
+            &InheritedVisibility,
             &FrustumCulling,
         )>,
     >,
@@ -232,7 +233,7 @@ pub fn extract(
                 Changed<TilemapSpacing>,
                 Changed<TilemapGridSize>,
                 Changed<TilemapSize>,
-                Changed<ComputedVisibility>,
+                Changed<InheritedVisibility>,
                 Changed<FrustumCulling>,
             )>,
         >,

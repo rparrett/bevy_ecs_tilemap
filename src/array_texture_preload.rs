@@ -4,8 +4,8 @@ use crate::{
     TilemapTexture,
 };
 use bevy::render::{
-    render_resource::{FilterMode, TextureFormat},
-    texture::BevyDefault,
+    render_resource::TextureFormat,
+    texture::{BevyDefault, ImageFilterMode},
 };
 use bevy::{
     prelude::{Assets, Image, Res, ResMut, Resource},
@@ -19,7 +19,7 @@ pub struct TilemapArrayTexture {
     pub tile_size: TilemapTileSize,
     pub tile_spacing: TilemapSpacing,
     /// Defaults to ImageSettings.
-    pub filter: Option<FilterMode>,
+    pub filter: Option<ImageFilterMode>,
     pub format: TextureFormat,
 }
 

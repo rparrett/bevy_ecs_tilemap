@@ -229,6 +229,15 @@ impl From<Vec2> for TilemapTileSize {
     }
 }
 
+impl From<UVec2> for TilemapTileSize {
+    fn from(v: UVec2) -> Self {
+        TilemapTileSize {
+            x: v.x as f32,
+            y: v.y as f32,
+        }
+    }
+}
+
 /// Size of the tiles on the grid in pixels.
 /// This can be used to overlay tiles on top of each other.
 /// Ex. A 16x16 pixel tile can be overlapped by 8 pixels by using
@@ -304,6 +313,15 @@ impl From<Vec2> for TilemapTextureSize {
         TilemapTextureSize {
             x: size.x,
             y: size.y,
+        }
+    }
+}
+
+impl From<UVec2> for TilemapTextureSize {
+    fn from(size: UVec2) -> Self {
+        TilemapTextureSize {
+            x: size.x as f32,
+            y: size.y as f32,
         }
     }
 }

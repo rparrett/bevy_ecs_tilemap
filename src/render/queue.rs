@@ -1,7 +1,7 @@
 use bevy::{
     prelude::*,
     render::{
-        render_resource::{BindGroup, BindGroupDescriptor, BindGroupEntry},
+        render_resource::{BindGroup, BindGroupEntry},
         renderer::RenderDevice,
     },
     utils::HashMap,

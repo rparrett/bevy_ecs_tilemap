@@ -7,9 +7,9 @@ use bevy::{
     render::{
         render_asset::RenderAssets,
         render_resource::{
-            AddressMode, CommandEncoderDescriptor, Extent3d, FilterMode, ImageCopyTexture,
-            Origin3d, SamplerDescriptor, TextureAspect, TextureDescriptor, TextureDimension,
-            TextureFormat, TextureUsages, TextureViewDescriptor, TextureViewDimension,
+            AddressMode, CommandEncoderDescriptor, Extent3d, ImageCopyTexture, Origin3d,
+            SamplerDescriptor, TextureAspect, TextureDescriptor, TextureDimension, TextureFormat,
+            TextureUsages, TextureViewDescriptor, TextureViewDimension,
         },
         renderer::{RenderDevice, RenderQueue},
         texture::{GpuImage, ImageFilterMode},

@@ -1,7 +1,6 @@
 use bevy::{
     core_pipeline::core_2d::Transparent2d,
     prelude::*,
-    reflect::{TypePath, TypeUuid},
     render::{
         extract_component::ExtractComponentPlugin,
         globals::GlobalsBuffer,

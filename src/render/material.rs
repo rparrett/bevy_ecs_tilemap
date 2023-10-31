@@ -517,7 +517,7 @@ pub fn queue_material_tilemap_meshes<M: MaterialTilemap>(
                         draw_function: draw_tilemap,
                         pipeline: pipeline_id,
                         sort_key: FloatOrd(z),
-                        batch_range: 0..0,
+                        batch_range: 0..1,
                         dynamic_offset: None,
                     });
                 }

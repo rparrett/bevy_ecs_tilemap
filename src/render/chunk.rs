@@ -292,7 +292,7 @@ impl RenderChunk2d {
     }
 
     pub fn intersects_frustum(&self, frustum: &ExtractedFrustum) -> bool {
-        frustum.intersects_obb(&self.aabb, &self.transform_matrix)
+        frustum.intersects_obb(&self.aabb, &self.global_transform.compute_affine())
     }
 
     pub fn update_geometry(

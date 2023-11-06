@@ -1,3 +1,4 @@
+use bevy::math::Affine3A;
 use bevy::prelude::Res;
 use bevy::prelude::Time;
 use bevy::render::primitives::{Aabb, Frustum};
@@ -174,9 +175,9 @@ pub struct ExtractedFrustum {
 }
 
 impl ExtractedFrustum {
-    pub fn intersects_obb(&self, aabb: &Aabb, transform_matrix: &Mat4) -> bool {
+    pub fn intersects_obb(&self, aabb: &Aabb, local_to_world: &Affine3A) -> bool {
         self.frustum
-            .intersects_obb(aabb, transform_matrix, true, false)
+            .intersects_obb(aabb, local_to_world, true, false)
     }
 }
 

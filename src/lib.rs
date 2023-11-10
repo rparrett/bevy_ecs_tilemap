@@ -15,8 +15,8 @@
 //! - Texture array support.
 
 use bevy::prelude::{
-    Bundle, Changed, Component, ComputedVisibility, Deref, First, GlobalTransform, Plugin, Query,
-    Reflect, ReflectComponent, Transform, Visibility,
+    Bundle, Changed, Component, Deref, First, GlobalTransform, InheritedVisibility, Plugin, Query,
+    Reflect, ReflectComponent, Transform, ViewVisibility, Visibility,
 };
 
 #[cfg(feature = "render")]
@@ -116,9 +116,10 @@ pub struct MaterialTilemapBundle<M: MaterialTilemap> {
     pub global_transform: GlobalTransform,
     /// User indication of whether an entity is visible
     pub visibility: Visibility,
-    /// Algorithmically-computed indication of whether an entity is visible and should be extracted
-    /// for rendering
-    pub computed_visibility: ComputedVisibility,
+    /// Inherited visibility of an entity.
+    pub inherited_visibility: InheritedVisibility,
+    /// Algorithmically-computed indication of whether an entity is visible and should be extracted for rendering
+    pub view_visibility: ViewVisibility,
     /// User indication of whether tilemap should be frustum culled.
     pub frustum_culling: FrustumCulling,
     pub material: Handle<M>,
@@ -139,9 +140,10 @@ pub struct StandardTilemapBundle {
     pub global_transform: GlobalTransform,
     /// User indication of whether an entity is visible
     pub visibility: Visibility,
-    /// Algorithmically-computed indication of whether an entity is visible and should be extracted
-    /// for rendering
-    pub computed_visibility: ComputedVisibility,
+    /// Inherited visibility of an entity.
+    pub inherited_visibility: InheritedVisibility,
+    /// Algorithmically-computed indication of whether an entity is visible and should be extracted for rendering
+    pub view_visibility: ViewVisibility,
     /// User indication of whether tilemap should be frustum culled.
     pub frustum_culling: FrustumCulling,
 }

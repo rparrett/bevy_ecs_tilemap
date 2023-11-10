@@ -18,7 +18,7 @@ pub struct TransformBindGroup {
     pub value: BindGroup,
 }
 
-pub fn queue_transform_bind_group(
+pub fn prepare_transform_bind_group(
     mut commands: Commands,
     tilemap_pipeline: Res<TilemapPipeline>,
     render_device: Res<RenderDevice>,

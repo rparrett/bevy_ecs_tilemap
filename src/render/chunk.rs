@@ -233,6 +233,7 @@ impl RenderChunk2d {
         let global_transform: Transform = global_transform.into();
         let transform = local_transform * global_transform;
         let transform_matrix = transform.compute_matrix();
+
         let aabb = chunk_aabb(size_in_tiles, &grid_size, &tile_size, &map_type);
         Self {
             dirty_mesh: true,

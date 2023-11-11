@@ -1,6 +1,6 @@
 use std::hash::{Hash, Hasher};
 
-use bevy::math::Mat4;
+use bevy::math::{Affine3, Affine3A};
 use bevy::prelude::{InheritedVisibility, Resource, Transform};
 use bevy::render::primitives::Aabb;
 use bevy::{
@@ -198,7 +198,7 @@ pub struct RenderChunk2d {
     /// The product of the local and global transforms.
     transform: Transform,
     /// The matrix computed from this chunk's `transform`.
-    transform_matrix: Mat4,
+    affine: Affine3A,
     pub spacing: Vec2,
     pub tiles: Vec<Option<PackedTileData>>,
     pub texture: TilemapTexture,
@@ -232,7 +232,7 @@ impl RenderChunk2d {
         let local_transform = Transform::from_translation(position.extend(0.0));
         let global_transform: Transform = global_transform.into();
         let transform = local_transform * global_transform;
-        let transform_matrix = transform.compute_matrix();
+        let affine = transform.compute_affine();
 
         let aabb = chunk_aabb(size_in_tiles, &grid_size, &tile_size, &map_type);
         Self {
@@ -250,7 +250,7 @@ impl RenderChunk2d {
             local_transform,
             global_transform,
             transform,
-            transform_matrix,
+            affine,
             mesh: Mesh::new(bevy::render::render_resource::PrimitiveTopology::TriangleList),
             spacing,
             texture_size,
@@ -288,12 +288,12 @@ impl RenderChunk2d {
         self.transform
     }
 
-    pub fn get_transform_matrix(&self) -> Mat4 {
-        self.transform_matrix
+    pub fn get_affine(&self) -> Affine3A {
+        self.affine
     }
 
     pub fn intersects_frustum(&self, frustum: &ExtractedFrustum) -> bool {
-        frustum.intersects_obb(&self.aabb, &self.global_transform.compute_affine())
+        frustum.intersects_obb(&self.aabb, &self.affine)
     }
 
     pub fn update_geometry(
@@ -336,7 +336,7 @@ impl RenderChunk2d {
 
         if dirty_local_transform || dirty_global_transform {
             self.transform = global_transform * self.local_transform;
-            self.transform_matrix = self.transform.compute_matrix();
+            self.affine = self.transform.compute_affine();
         }
     }
 

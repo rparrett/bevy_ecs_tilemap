@@ -195,7 +195,7 @@ pub(crate) fn prepare(
             TilemapId(Entity::from_bits(chunk.tilemap_id)),
             DynamicUniformIndex::<MeshUniform> {
                 index: mesh_uniforms.0.push(MeshUniform {
-                    transform: chunk.get_transform_matrix(),
+                    transform: chunk.get_affine().into(),
                 }),
                 marker: PhantomData,
             },

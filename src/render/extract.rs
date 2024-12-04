@@ -49,7 +49,6 @@ pub struct ExtractedTilemapBundle {
     visibility: InheritedVisibility,
     frustum_culling: FrustumCulling,
     render_settings: TilemapRenderSettings,
-    temporary: TemporaryRenderEntity,
 }
 
 #[derive(Component)]
@@ -287,11 +286,9 @@ pub fn extract(
                     visibility: *data.8,
                     frustum_culling: *data.9,
                     render_settings: *data.10,
-                    temporary: TemporaryRenderEntity,
                 },
             ),
         );
-
         extracted_tiles.push((
             render_entity.id(),
             ExtractedTileBundle {
@@ -325,7 +322,6 @@ pub fn extract(
                         visibility: *data.8,
                         frustum_culling: *data.9,
                         render_settings: *data.10,
-                        temporary: TemporaryRenderEntity,
                     },
                 ),
             );
